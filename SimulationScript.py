@@ -251,9 +251,11 @@ def connectionLoop(sock):
 #       time.sleep(1)
 
 def Client(sock) :
-   data = json.dumps("Hi, im clinet")
-   sock.sendto(bytes(data,'utf8'), (serverIP, serverPort))
-
+   #######################First send connecting msg, server will add this client as new client######################
+   connectMsg = {"cmd" : "Connect"}
+   jsonConnectMsg = json.dumps(connectMsg)
+   sock.sendto(bytes(jsonConnectMsg,'utf8'), (serverIP, serverPort))
+   ########################################################################
 
 def main():
     #Create socket, type of UDP

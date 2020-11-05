@@ -14,7 +14,7 @@ import json
 clients_lock = threading.Lock()
 connected = 0
 
-clients = {}
+listOfClients = {}
 
 def IsFloat(s):
     try:
@@ -31,7 +31,7 @@ def connectionLoop(sock):
       print("Start connectionLoop")
       #try:
       data, addr = sock.recvfrom(1024)
-      print("Client join request: ", addr[0], addr[1])
+      print("Got msg from client: ", addr[0], addr[1])
       #except socket.error:
       #   print("Errlro")
 
@@ -43,8 +43,16 @@ def connectionLoop(sock):
 
       #convert data to string
       #data = str(data)
+
+      #convert json data to python object
       convertedData = json.loads(data)
-      print(convertedData)
+
+      #if data was connect msg, add new client to client list
+      if convertedData["cmd"] == "Connect" :
+          print("New client connected")
+          listOfClients[addr] = {}
+
+        
       #check if addr(key) is in clients(dictionary)
 #       if addr in clients:
 #          #check if 'heartbeat' object(property) is in data
