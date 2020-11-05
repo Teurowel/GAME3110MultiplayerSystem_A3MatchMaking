@@ -17,6 +17,7 @@ connected = 0
 clients = {}
 
 serverIP = "127.0.0.1"
+#serverIP = "3.138.33.54"
 serverPort = 12345
 
 def connectionLoop(sock):
@@ -250,19 +251,23 @@ def connectionLoop(sock):
 #             clients_lock.release()
 #       time.sleep(1)
 
-def Client(sock) :
+def Client(sock, user_id) :
    #######################First send connecting msg, server will add this client as new client######################
-   connectMsg = {"cmd" : "Connect"}
+   connectMsg = {"cmd" : "Connect",
+                 "user_id" : user_id}
+
    jsonConnectMsg = json.dumps(connectMsg)
    sock.sendto(bytes(jsonConnectMsg,'utf8'), (serverIP, serverPort))
    ########################################################################
 
 def main():
     #Create socket, type of UDP
-    for x in range(5):
-      sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-      start_new_thread(Client, (sock, ))
 
+    #start multi thread, range will be player number, user_id will be player's unique user id
+    #"{:03d}".format(user_id + 1) -> formating integer digit, 03d means change 0 -> 000, or 1 -> 001
+    for user_id in range(5):
+      sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+      start_new_thread(Client, (sock, "{:03d}".format(user_id + 1)))
 
 
    #  testDIc = {"user_id" : "001",

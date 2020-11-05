@@ -51,8 +51,10 @@ def connectionLoop(sock):
       if convertedData["cmd"] == "Connect" :
           print("New client connected")
           listOfClients[addr] = {}
+          listOfClients[addr]["user_id"] = convertedData["user_id"]
+          a = 3
 
-        
+
       #check if addr(key) is in clients(dictionary)
 #       if addr in clients:
 #          #check if 'heartbeat' object(property) is in data
