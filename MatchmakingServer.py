@@ -10,19 +10,26 @@ import threading
 from datetime import datetime
 import json
 
+#for requesting user info from AWSLamda
+import requests
+
 #For data synchoronize
 clients_lock = threading.Lock()
 connected = 0
 
 listOfUser = {}
-waitingLobby = {}
 
-def IsFloat(s):
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
+def RequestUserInfoFromAWSLamda(user_id) :
+    #dictionary(key, value)
+    queryParams = {"user_id" : user_id}
+    
+    #Request user info from AWSLamda, it gives JSON data
+    resp = requests.get("https://a4g6194i43.execute-api.us-east-2.amazonaws.com/default/GetPlayerInfo", queryParams)
+
+    #JSON data -> Dictionary(Python Object)
+    respBody = json.loads(resp.content)
+
+    return respBody
 
 def connectionLoop(sock):
    while True:
@@ -50,9 +57,14 @@ def connectionLoop(sock):
 
       #if data was connect msg, add new client to client list
       if convertedData["cmd"] == "Connect" :
-          print("New client connected")
-          listOfUser[convertedData["user_id"]] = {}
-          #listOfUser[convertedData["user_id"]]["skill_level"] = convertedData["user_id"]
+          print("New client connected, get info of this player from AWSLamda")
+          respBody = RequestUserInfoFromAWSLamda(convertedData["user_id"])
+          
+          #add new user to list of users
+          listOfUser[respBody["user_id"]] = {}
+          listOfUser[respBody["user_id"]]["name"] = respBody["name"]
+          listOfUser[respBody["user_id"]]["skill_level"] = respBody["skill_level"]
+          
           
           #check if we have more than 3 players
           if(len(listOfUser) >= 3):
