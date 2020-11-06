@@ -18,6 +18,28 @@ clients_lock = threading.Lock()
 connected = 0
 
 listOfUser = {}
+#waiting list for user, 
+waitingList = [{"WaitingTime" : 0, "userList" : []}, #idx 0 for skill level 0 ~ 200
+               {"WaitingTime" : 0, "userList" : []}, #idx 1 for skill level 201 ~ 400
+               {"WaitingTime" : 0, "userList" : []}, #idx 2 for skill level 401 ~ 600
+               {"WaitingTime" : 0, "userList" : []}, #idx 3 for skill level 601 ~ 800
+               {"WaitingTime" : 0, "userList" : []}] #idx 4 for skill level 801 ~ 1000
+
+def AddToWaitingLobby(user_id) :
+    #get user's skill level
+    userSkillLevel = int(listOfUser[user_id]["skill_level"])
+
+    #put user into proper waitingList
+    if(userSkillLevel >= 801):
+        waitingList[4]["userList"].append(user_id)
+    elif(userSkillLevel >= 601):
+        waitingList[3]["userList"].append(user_id)
+    elif(userSkillLevel >= 401):
+        waitingList[2]["userList"].append(user_id)
+    elif(userSkillLevel >= 201):
+        waitingList[1]["userList"].append(user_id)
+    else:
+        waitingList[0]["userList"].append(user_id)
 
 def RequestUserInfoFromAWSLamda(user_id) :
     #dictionary(key, value)
@@ -65,19 +87,27 @@ def connectionLoop(sock):
           listOfUser[respBody["user_id"]]["name"] = respBody["name"]
           listOfUser[respBody["user_id"]]["skill_level"] = respBody["skill_level"]
           
+          #add new user to waiting lobby
+          AddToWaitingLobby(respBody["user_id"])
+          print(respBody["user_id"] + " is added to waiting lobby")
+          
+          #send connection success msg
+          connectedMsg = {"cmd" : "ConnectionSuccess", "user_id" : respBody["user_id"]}
+          jsonConnectedMsg = json.dumps(connectedMsg)
+          sock.sendto(bytes(jsonConnectedMsg,'utf8'), (addr[0], addr[1]))
           
           #check if we have more than 3 players
-          if(len(listOfUser) >= 3):
-              print("Fidning match..")
-              matchFoundMsg = {"cmd" : "MatchFoundResult", "Result" : "Yes"}
-              jsonMatchFoundMsg = json.dumps(matchFoundMsg)
-              sock.sendto(bytes(jsonMatchFoundMsg,'utf8'), (addr[0], addr[1]))
-          #if we don't have enough player to make match, send msg that we couldn't make match
-          else :
-              print("Need more players")
-              matchFoundMsg = {"cmd" : "MatchFoundResult", "Result" : "No"}
-              jsonMatchFoundMsg = json.dumps(matchFoundMsg)
-              sock.sendto(bytes(jsonMatchFoundMsg,'utf8'), (addr[0], addr[1]))
+        #   if(len(listOfUser) >= 3):
+        #       print("Fidning match..")
+        #       matchFoundMsg = {"cmd" : "MatchFoundResult", "Result" : "Yes"}
+        #       jsonMatchFoundMsg = json.dumps(matchFoundMsg)
+        #       sock.sendto(bytes(jsonMatchFoundMsg,'utf8'), (addr[0], addr[1]))
+        #   #if we don't have enough player to make match, send msg that we couldn't make match
+        #   else :
+        #       print("Need more players")
+        #       matchFoundMsg = {"cmd" : "MatchFoundResult", "Result" : "No"}
+        #       jsonMatchFoundMsg = json.dumps(matchFoundMsg)
+        #       sock.sendto(bytes(jsonMatchFoundMsg,'utf8'), (addr[0], addr[1]))
 
 
 
@@ -292,6 +322,29 @@ def connectionLoop(sock):
 #             clients_lock.release()
 #       time.sleep(1)
 
+#Waiting lobby for waiting players, periodically check waiting list and match the game or expand matching range
+def WaitingLobby(sock) :
+    while True:
+        for i in range(5) :
+            #if there is user in waiting list
+            if len(waitingList[i]["userList"]) > 0 :
+                #increase waiting time for list
+                waitingList[i]["WaitingTime"] += 1
+
+            #if there are more than 3 user in waiting list
+            if len(waitingList[i]["userList"]) >= 3 :
+                #lock data
+                clients_lock.acquire()
+
+
+
+                #release data
+                clients_lock.release()
+
+                
+
+        time.sleep(1)
+
 def main():
    port = 12345
 
@@ -305,7 +358,7 @@ def main():
    #give funtion name and argument
    #start_new_thread(gameLoop, (s,))
    start_new_thread(connectionLoop, (s,))
-   #start_new_thread(cleanClients,(s,))
+   #start_new_thread(WaitingLobby,(s,))
    while True:
       time.sleep(1)
 

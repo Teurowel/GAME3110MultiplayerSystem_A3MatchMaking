@@ -12,13 +12,22 @@ import json
 
 #For data synchoronize
 clients_lock = threading.Lock()
-connected = 0
-
-clients = {}
 
 serverIP = "127.0.0.1"
 #serverIP = "3.138.33.54"
 serverPort = 12345
+
+#list of user id in DataBase
+listOfUserID = [{"user_id" : "001", "isInWaitingLobby" : False},
+               {"user_id" : "002", "isInWaitingLobby" : False},
+               {"user_id" : "003", "isInWaitingLobby" : False},
+               {"user_id" : "004", "isInWaitingLobby" : False},
+               {"user_id" : "005", "isInWaitingLobby" : False},
+               {"user_id" : "006", "isInWaitingLobby" : False},
+               {"user_id" : "007", "isInWaitingLobby" : False},
+               {"user_id" : "008", "isInWaitingLobby" : False},
+               {"user_id" : "009", "isInWaitingLobby" : False},
+               {"user_id" : "010", "isInWaitingLobby" : False}]
 
 def connectionLoop(sock):
    while True:
@@ -251,51 +260,74 @@ def connectionLoop(sock):
 #             clients_lock.release()
 #       time.sleep(1)
 
-def Client(sock, user_id) :
-   #######################First send connecting msg, server will add this client as new client######################
-   connectMsg = {"cmd" : "Connect",
-                 "user_id" : user_id}
+def UserRequestJoiningGame(sock) :
+   # #######################First send connecting msg, server will add this client as new client######################
+   # connectMsg = {"cmd" : "Connect",
+   #               "user_id" : user_id}
 
-   jsonConnectMsg = json.dumps(connectMsg)
-   sock.sendto(bytes(jsonConnectMsg,'utf8'), (serverIP, serverPort))
-   ########################################################################
+   # jsonConnectMsg = json.dumps(connectMsg)
+   # sock.sendto(bytes(jsonConnectMsg,'utf8'), (serverIP, serverPort))
+   # ########################################################################
 
-def main():
-   #list of user id in DataBase
-   listOfUserID = ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010"]
-
-   #create sockect
-   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-   #get number of game
-   numOfGame = int(input("Number of game: "))
-
-   #which player request
    idxOfListOfUserID = 0
 
-   #start requesting
-   for i in range(numOfGame):
-      while True:
+   #keep user joining game
+   while True :
+      #if this user is not in waiting lobby
+      if listOfUserID[idxOfListOfUserID]["isInWaitingLobby"] == False :
          #send match request
-         connectMsg = {"cmd" : "Connect", "user_id" : listOfUserID[idxOfListOfUserID]}
+         connectMsg = {"cmd" : "Connect", "user_id" : listOfUserID[idxOfListOfUserID]["user_id"]}
          jsonConnectMsg = json.dumps(connectMsg)
          sock.sendto(bytes(jsonConnectMsg,'utf8'), (serverIP, serverPort))
 
-         #wait for reply from server
-         data, addr = sock.recvfrom(1024)
-         convertedData = json.loads(data)
+         #lock data
+         clients_lock.acquire()
 
-         #check msg
-         if convertedData["cmd"] == "MatchFoundResult" :
-            if convertedData["Result"] == "Yes" :
-               print("Match found")
-               a = 10
-               break
-            else :
-               print("Match not found, send next player for requesting")
-               idxOfListOfUserID += 1
+         listOfUserID[idxOfListOfUserID]["isInWaitingLobby"] = True
+
+         #release data
+         clients_lock.release()
+
+         idxOfListOfUserID += 1
+         if(idxOfListOfUserID == len(listOfUserID)):
+            idxOfListOfUserID = 0
+
+      time.sleep(1)
+
+def main():
+   #get number of game
+   numOfGame = int(input("Number of game: "))
+
+   #create sockect
+   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+   
+   connectMsg = {"cmd" : "StartSimulation"}
+   jsonConnectMsg = json.dumps(connectMsg)
+   sock.sendto(bytes(jsonConnectMsg,'utf8'), (serverIP, serverPort))
+
+   #start thread that keep player requesting joining game
+   start_new_thread(UserRequestJoiningGame, (sock,))
+
+   #start requesting
+   while True:
+      #wait for reply from server
+      data, addr = sock.recvfrom(1024)
+      convertedData = json.loads(data)
+
+      #check msg
+      if convertedData["cmd"] == "MatchFoundResult" :
+         if convertedData["Result"] == "Yes" :
+            print("Match found")
+            a = 10
+            break
+         else :
+            print("Match not found, send next player for requesting")
+            
+      elif convertedData["cmd"] == "ConnectionSuccess" :
+         print(convertedData["user_id"] + " connected!")
       
-      break
+      
+      
 
    #Create socket, type of UDP
 
