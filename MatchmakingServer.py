@@ -14,7 +14,8 @@ import json
 clients_lock = threading.Lock()
 connected = 0
 
-listOfClients = {}
+listOfUser = {}
+waitingLobby = {}
 
 def IsFloat(s):
     try:
@@ -50,9 +51,23 @@ def connectionLoop(sock):
       #if data was connect msg, add new client to client list
       if convertedData["cmd"] == "Connect" :
           print("New client connected")
-          listOfClients[addr] = {}
-          listOfClients[addr]["user_id"] = convertedData["user_id"]
-          a = 3
+          listOfUser[convertedData["user_id"]] = {}
+          #listOfUser[convertedData["user_id"]]["skill_level"] = convertedData["user_id"]
+          
+          #check if we have more than 3 players
+          if(len(listOfUser) >= 3):
+              print("Fidning match..")
+              matchFoundMsg = {"cmd" : "MatchFoundResult", "Result" : "Yes"}
+              jsonMatchFoundMsg = json.dumps(matchFoundMsg)
+              sock.sendto(bytes(jsonMatchFoundMsg,'utf8'), (addr[0], addr[1]))
+          #if we don't have enough player to make match, send msg that we couldn't make match
+          else :
+              print("Need more players")
+              matchFoundMsg = {"cmd" : "MatchFoundResult", "Result" : "No"}
+              jsonMatchFoundMsg = json.dumps(matchFoundMsg)
+              sock.sendto(bytes(jsonMatchFoundMsg,'utf8'), (addr[0], addr[1]))
+
+
 
 
       #check if addr(key) is in clients(dictionary)

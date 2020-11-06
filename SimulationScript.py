@@ -261,13 +261,49 @@ def Client(sock, user_id) :
    ########################################################################
 
 def main():
-    #Create socket, type of UDP
+   #list of user id in DataBase
+   listOfUserID = ["001", "002", "003", "004", "005", "006", "007", "008", "009", "010"]
 
-    #start multi thread, range will be player number, user_id will be player's unique user id
-    #"{:03d}".format(user_id + 1) -> formating integer digit, 03d means change 0 -> 000, or 1 -> 001
-    for user_id in range(5):
-      sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-      start_new_thread(Client, (sock, "{:03d}".format(user_id + 1)))
+   #create sockect
+   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+   #get number of game
+   numOfGame = int(input("Number of game: "))
+
+   #which player request
+   idxOfListOfUserID = 0
+
+   #start requesting
+   for i in range(numOfGame):
+      while True:
+         #send match request
+         connectMsg = {"cmd" : "Connect", "user_id" : listOfUserID[idxOfListOfUserID]}
+         jsonConnectMsg = json.dumps(connectMsg)
+         sock.sendto(bytes(jsonConnectMsg,'utf8'), (serverIP, serverPort))
+
+         #wait for reply from server
+         data, addr = sock.recvfrom(1024)
+         convertedData = json.loads(data)
+
+         #check msg
+         if convertedData["cmd"] == "MatchFoundResult" :
+            if convertedData["Result"] == "Yes" :
+               print("Match found")
+               a = 10
+               break
+            else :
+               print("Match not found, send next player for requesting")
+               idxOfListOfUserID += 1
+      
+      break
+
+   #Create socket, type of UDP
+
+   #start multi thread, range will be player number, user_id will be player's unique user id
+   #"{:03d}".format(user_id + 1) -> formating integer digit, 03d means change 0 -> 000, or 1 -> 001
+   #  for user_id in range(5):
+   #    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+   #    start_new_thread(Client, (sock, "{:03d}".format(user_id + 1)))
 
 
    #  testDIc = {"user_id" : "001",
@@ -283,8 +319,8 @@ def main():
    #start_new_thread(gameLoop, (s,))
    #start_new_thread(connectionLoop, (s,))
    #start_new_thread(cleanClients,(s,))
-    while True:
-        time.sleep(1)
+   while True:
+      time.sleep(1)
 
 if __name__ == '__main__':
    main()
