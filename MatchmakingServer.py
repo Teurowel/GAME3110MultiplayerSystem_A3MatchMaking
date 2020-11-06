@@ -25,9 +25,14 @@ waitingList = [{"WaitingTime" : 0, "userList" : []}, #idx 0 for skill level 0 ~ 
                {"WaitingTime" : 0, "userList" : []}, #idx 3 for skill level 601 ~ 800
                {"WaitingTime" : 0, "userList" : []}] #idx 4 for skill level 801 ~ 1000
 
+simulationScriptAddr = ()
+
 def AddToWaitingLobby(user_id) :
     #get user's skill level
     userSkillLevel = int(listOfUser[user_id]["skill_level"])
+
+    #lock data
+    clients_lock.acquire()
 
     #put user into proper waitingList
     if(userSkillLevel >= 801):
@@ -40,6 +45,9 @@ def AddToWaitingLobby(user_id) :
         waitingList[1]["userList"].append(user_id)
     else:
         waitingList[0]["userList"].append(user_id)
+
+    #release data
+    clients_lock.release()
 
 def RequestUserInfoFromAWSLamda(user_id) :
     #dictionary(key, value)
@@ -54,47 +62,50 @@ def RequestUserInfoFromAWSLamda(user_id) :
     return respBody
 
 def connectionLoop(sock):
-   while True:
-      #receive packet with size of 1024Bytes
-      #and save packet in data, addr
-      #[bits, [IP, PORT]] -> tuple, IP : sender of IP, PORT : sender of PORT
-      print("Start connectionLoop")
-      #try:
-      data, addr = sock.recvfrom(1024)
-      print("Got msg from client: ", addr[0], addr[1])
-      #except socket.error:
-      #   print("Errlro")
+    global simulationScriptAddr
 
-      #print("connection loop")
+    while True:
+        print("Start connectionLoop")
 
-      #send packet
-      #can only send bytes datatype,  send "hello!" with 'utf8' format to addr[0](IP) and addr[1](PORT)
-      #sock.sendto(bytes("Hello!",'utf8'), (addr[0], addr[1]))
+        #receive packet with size of 1024Bytes
+        #and save packet in data, addr
+        #[bits, [IP, PORT]] -> tuple, IP : sender of IP, PORT : sender of PORT
+        data, addr = sock.recvfrom(1024)
+        
+        #if we don't have simulation script's address(IP, PORT)
+        if simulationScriptAddr == () :
+            #lock data
+            clients_lock.acquire()
 
-      #convert data to string
-      #data = str(data)
+            simulationScriptAddr = addr
 
-      #convert json data to python object
-      convertedData = json.loads(data)
+            #release data
+            clients_lock.release()
 
-      #if data was connect msg, add new client to client list
-      if convertedData["cmd"] == "Connect" :
-          print("New client connected, get info of this player from AWSLamda")
-          respBody = RequestUserInfoFromAWSLamda(convertedData["user_id"])
-          
-          #add new user to list of users
-          listOfUser[respBody["user_id"]] = {}
-          listOfUser[respBody["user_id"]]["name"] = respBody["name"]
-          listOfUser[respBody["user_id"]]["skill_level"] = respBody["skill_level"]
-          
-          #add new user to waiting lobby
-          AddToWaitingLobby(respBody["user_id"])
-          print(respBody["user_id"] + " is added to waiting lobby")
-          
-          #send connection success msg
-          connectedMsg = {"cmd" : "ConnectionSuccess", "user_id" : respBody["user_id"]}
-          jsonConnectedMsg = json.dumps(connectedMsg)
-          sock.sendto(bytes(jsonConnectedMsg,'utf8'), (addr[0], addr[1]))
+        print("Got msg from client: ", addr[0], addr[1])
+
+        #convert json data to python object
+        convertedData = json.loads(data)
+
+        #if data was connect msg, add new client to client list
+        if convertedData["cmd"] == "Connect" :
+            print("New client connected, get info of this player from AWSLamda")
+            respBody = RequestUserInfoFromAWSLamda(convertedData["user_id"])
+            
+            #add new user to list of users
+            listOfUser[respBody["user_id"]] = {}
+            listOfUser[respBody["user_id"]]["user_id"] = respBody["user_id"]
+            listOfUser[respBody["user_id"]]["name"] = respBody["name"]
+            listOfUser[respBody["user_id"]]["skill_level"] = respBody["skill_level"]
+            
+            #add new user to waiting lobby
+            AddToWaitingLobby(respBody["user_id"])
+            print(respBody["user_id"] + " is added to waiting lobby")
+            
+            #send connection success msg
+            connectedMsg = {"cmd" : "ConnectionSuccess", "user_id" : respBody["user_id"]}
+            jsonConnectedMsg = json.dumps(connectedMsg)
+            sock.sendto(bytes(jsonConnectedMsg,'utf8'), (addr[0], addr[1]))
           
           #check if we have more than 3 players
         #   if(len(listOfUser) >= 3):
@@ -324,7 +335,18 @@ def connectionLoop(sock):
 
 #Waiting lobby for waiting players, periodically check waiting list and match the game or expand matching range
 def WaitingLobby(sock) :
+    global simulationScriptAddr
+    #init game id
+    gameID = 0
+
     while True:
+        for i in range(5) :
+            print("WaitingList" + str(i) + ": ", end='')
+            for j in range(len(waitingList[i]["userList"])) :
+                print(waitingList[i]["userList"][j] + " ", end='')
+            print("")
+
+
         for i in range(5) :
             #if there is user in waiting list
             if len(waitingList[i]["userList"]) > 0 :
@@ -333,15 +355,42 @@ def WaitingLobby(sock) :
 
             #if there are more than 3 user in waiting list
             if len(waitingList[i]["userList"]) >= 3 :
+                print("Match Found")
+                
                 #lock data
                 clients_lock.acquire()
 
+                #Get matched users
+                matchedUsers = []
+                for j in range(3) :
+                    if waitingList[i]["userList"][j] in listOfUser :
+                        matchedUsers.append(listOfUser[waitingList[i]["userList"][j]])
 
+                #delete matched user from listOfUser
+                for j in range(3) :
+                    del listOfUser[waitingList[i]["userList"][j]]
+
+                #delete matched user from waitingList
+                for j in range(3) :
+                    waitingList[i]["userList"].pop(0)               
+                
+                #reset waiting time of waiting list
+                waitingList[i]["WaitingTime"] = 0
 
                 #release data
                 clients_lock.release()
 
-                
+
+                #send match found msg
+                matchFoundMsg = {"cmd" : "MatchFound", 
+                                 "users" : matchedUsers,
+                                 "gameID" : gameID
+                                }
+
+                jsonMatchFoundMsg = json.dumps(matchFoundMsg)
+                sock.sendto(bytes(jsonMatchFoundMsg,'utf8'), (simulationScriptAddr[0], simulationScriptAddr[1]))
+
+                gameID += 1
 
         time.sleep(1)
 
@@ -358,7 +407,7 @@ def main():
    #give funtion name and argument
    #start_new_thread(gameLoop, (s,))
    start_new_thread(connectionLoop, (s,))
-   #start_new_thread(WaitingLobby,(s,))
+   start_new_thread(WaitingLobby,(s,))
    while True:
       time.sleep(1)
 
