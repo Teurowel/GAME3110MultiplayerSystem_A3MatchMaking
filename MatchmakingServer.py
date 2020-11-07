@@ -25,6 +25,9 @@ waitingList = [{"WaitingTime" : 0, "userList" : []}, #idx 0 for skill level 0 ~ 
                {"WaitingTime" : 0, "userList" : []}, #idx 3 for skill level 601 ~ 800
                {"WaitingTime" : 0, "userList" : []}] #idx 4 for skill level 801 ~ 1000
 
+#after 5 seconds of wating, move users to one below waiting line
+maxWaitingTime = 5
+
 simulationScriptAddr = ()
 
 def AddToWaitingLobby(user_id) :
@@ -115,14 +118,15 @@ def WaitingLobby(sock) :
     gameID = 0
 
     while True:
-        for i in range(5) :
+        for i in range(len(waitingList)) :
             print("WaitingList" + str(i) + ": ", end='')
             for j in range(len(waitingList[i]["userList"])) :
                 print(waitingList[i]["userList"][j] + " ", end='')
+            print("waiting Time: " + str(waitingList[i]["WaitingTime"]), end='')
             print("")
 
 
-        for i in range(5) :
+        for i in range(len(waitingList)) :
             #if there is user in waiting list
             if len(waitingList[i]["userList"]) > 0 :
                 #increase waiting time for list
@@ -132,14 +136,14 @@ def WaitingLobby(sock) :
             if len(waitingList[i]["userList"]) >= 3 :
                 print("Match Found")
                 
-                #lock data
-                clients_lock.acquire()
-
                 #Get matched users
                 matchedUsers = []
                 for j in range(3) :
                     if waitingList[i]["userList"][j] in listOfUser :
                         matchedUsers.append(listOfUser[waitingList[i]["userList"][j]])
+
+                #lock data
+                clients_lock.acquire()
 
                 #delete matched user from listOfUser
                 for j in range(3) :
@@ -147,14 +151,14 @@ def WaitingLobby(sock) :
 
                 #delete matched user from waitingList
                 for j in range(3) :
-                    waitingList[i]["userList"].pop(0)               
-                
-                #reset waiting time of waiting list
-                waitingList[i]["WaitingTime"] = 0
+                    waitingList[i]["userList"].pop(0)    
 
                 #release data
-                clients_lock.release()
-
+                clients_lock.release()           
+                
+                #reset waiting time of waiting list if list is empty
+                if len(waitingList[i]["userList"]) == 0 :
+                    waitingList[i]["WaitingTime"] = 0
 
                 #send match found msg
                 matchFoundMsg = {"cmd" : "MatchFound", 
@@ -166,6 +170,16 @@ def WaitingLobby(sock) :
                 sock.sendto(bytes(jsonMatchFoundMsg,'utf8'), (simulationScriptAddr[0], simulationScriptAddr[1]))
 
                 gameID += 1
+
+            #If waiting list time is over than max waiting time, move users in list to one below list
+            if i != 0 :
+                if waitingList[i]["WaitingTime"] >= maxWaitingTime :
+                    for k in range(len(waitingList[i]["userList"])):
+                        waitingList[i-1]["userList"].append(waitingList[i]["userList"][k])
+                    
+                    waitingList[i]["userList"].clear()
+                    waitingList[i]["WaitingTime"] = 0
+
 
         time.sleep(1)
 

@@ -6,6 +6,7 @@ import time
 from _thread import *
 import threading
 
+from threading import Thread
 
 from datetime import datetime
 import json
@@ -30,8 +31,10 @@ def UpdateUserInfoToAWSLamda(user) :
    body = {"user_id" : user["user_id"], "skill_level" : user["skill_level"]}
 
    #request put to update user info
-   resp = requests.put("https://6w26z2v5vj.execute-api.us-east-2.amazonaws.com/default/UpdatePlayerInfo", data = body )
-   a = 10
+   resp = requests.put("https://6w26z2v5vj.execute-api.us-east-2.amazonaws.com/default/UpdatePlayerInfo", data = json.dumps(body) )
+   respBody = json.loads(resp.content)
+   
+   print(respBody["user_id"] + " updated")
 
 #users is array of dictionary{"user_id", "skill_level", "name"}
 def GameSimulation(users) :
@@ -75,6 +78,12 @@ def GameSimulation(users) :
    users[winnerIdx]["skill_level"] = str(int(users[winnerIdx]["skill_level"]) + winnerPoint)
    UpdateUserInfoToAWSLamda(users[winnerIdx])
 
+   users[loseUser1Idx]["skill_level"] = str(int(users[loseUser1Idx]["skill_level"]) + losePoint1)
+   UpdateUserInfoToAWSLamda(users[loseUser1Idx])
+
+   users[loseUser2Idx]["skill_level"] = str(int(users[loseUser2Idx]["skill_level"]) + losePoint2)
+   UpdateUserInfoToAWSLamda(users[loseUser2Idx])
+
 def UserRequestJoiningGame(sock) :
    # #######################First send connecting msg, server will add this client as new client######################
    # connectMsg = {"cmd" : "Connect",
@@ -116,7 +125,10 @@ def main():
    sock.sendto(bytes(jsonConnectMsg,'utf8'), (serverIP, serverPort))
 
    #start thread that keep player requesting joining game
-   start_new_thread(UserRequestJoiningGame, (sock,))
+   #start_new_thread(UserRequestJoiningGame, (sock,))
+
+   userRequestJoiningGameThread = Thread(target=UserRequestJoiningGame, args=(sock,))
+   userRequestJoiningGameThread.start()
 
    #how many games are matched?
    matchedGameNum = 0
@@ -144,7 +156,7 @@ def main():
       elif convertedData["cmd"] == "MatchFound" :
          print("Found match!")
          print("GameID: " + str(convertedData["gameID"]))
-         
+         print("Users: " + convertedData["users"][0]["user_id"] + " " + convertedData["users"][1]["user_id"] + " " + convertedData["users"][2]["user_id"])
          #simulate game using matched users
          GameSimulation(convertedData["users"])
 
@@ -159,9 +171,16 @@ def main():
 
          matchedGameNum += 1
 
-      
-      
-      
+         if(matchedGameNum == numOfGame) :
+            print("All game done, finish Simulation Script")
+            break
+
+   #wait until this thread finish   
+   userRequestJoiningGameThread.join()  
+   
+   #shutdown socket
+   sock.shutdown(socket.SHUT_RDWR)
+   sock.close()
       
 
    #Create socket, type of UDP
