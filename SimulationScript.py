@@ -10,6 +10,9 @@ import threading
 from datetime import datetime
 import json
 
+#for requesting user info from AWSLamda
+import requests
+
 #For data synchoronize
 clients_lock = threading.Lock()
 
@@ -22,27 +25,55 @@ listOfUserID = {"001" : False, "002" : False, "003" : False, "004" : False, "005
                 "006" : False, "007" : False, "008" : False, "009" : False, "010" : False
                }
 
-def connectionLoop(sock):
-   while True:
-      #receive packet with size of 1024Bytes
-      #and save packet in data, addr
-      #[bits, [IP, PORT]] -> tuple, IP : sender of IP, PORT : sender of PORT
-      print("Start connectionLoop")
-      #try:
-      data, addr = sock.recvfrom(1024)
-      print("Client join request: " + addr)
-      #except socket.error:
-      #   print("Errlro")
+def UpdateUserInfoToAWSLamda(user) :
+   #make body for AWSLamda
+   body = {"user_id" : user["user_id"], "skill_level" : user["skill_level"]}
 
-      #print("connection loop")
+   #request put to update user info
+   resp = requests.put("https://6w26z2v5vj.execute-api.us-east-2.amazonaws.com/default/UpdatePlayerInfo", data = body )
+   a = 10
 
-      #send packet
-      #can only send bytes datatype,  send "hello!" with 'utf8' format to addr[0](IP) and addr[1](PORT)
-      #sock.sendto(bytes("Hello!",'utf8'), (addr[0], addr[1]))
+#users is array of dictionary{"user_id", "skill_level", "name"}
+def GameSimulation(users) :
+   #randomly select winner among 3users
+   winnerIdx = random.randint(0, 2)
+   loseUser1Idx = -1
+   loseUser2Idx = -1
 
-      #convert data to string
-      data = str(data)
+   #set lose user idx
+   if winnerIdx == 0 :
+      loseUser1Idx = 1
+      loseUser2Idx = 2
+   elif winnerIdx == 1 :
+      loseUser1Idx = 0
+      loseUser2Idx = 2
+   elif winnerIdx == 2 :
+      loseUser1Idx = 0
+      loseUser2Idx = 1
 
+   #from ELO rating system
+   KFactor = 30
+
+   
+   #calculate sum of all matched users skill level
+   sumOfAllUserSkillLevel = 0
+   for i in range(3) :
+      sumOfAllUserSkillLevel += int(users[i]["skill_level"])
+
+   #(1 - (winner skill level / sum of skill levels)) * KFactor
+   winnerPoint = (1 - (int(users[winnerIdx]["skill_level"]) / sumOfAllUserSkillLevel)) * KFactor
+   winnerPoint = round(winnerPoint)
+
+   #(0 - (lose skill level / sum of skill levels)) * KFactor
+   losePoint1 = (0 - (int(users[loseUser1Idx]["skill_level"]) / sumOfAllUserSkillLevel)) * KFactor
+   losePoint1 = round(losePoint1)
+
+   losePoint2 = (0 - (int(users[loseUser2Idx]["skill_level"]) / sumOfAllUserSkillLevel)) * KFactor
+   losePoint2 = round(losePoint2)
+
+   #update user's skill level
+   users[winnerIdx]["skill_level"] = str(int(users[winnerIdx]["skill_level"]) + winnerPoint)
+   UpdateUserInfoToAWSLamda(users[winnerIdx])
 
 def UserRequestJoiningGame(sock) :
    # #######################First send connecting msg, server will add this client as new client######################
@@ -114,8 +145,17 @@ def main():
          print("Found match!")
          print("GameID: " + str(convertedData["gameID"]))
          
+         #simulate game using matched users
+         GameSimulation(convertedData["users"])
+
          for i in range(len(convertedData["users"])) :
+            #lock data
+            clients_lock.acquire()
+
             listOfUserID[convertedData["users"][i]["user_id"]] = False
+
+            #release data
+            clients_lock.release()
 
          matchedGameNum += 1
 
