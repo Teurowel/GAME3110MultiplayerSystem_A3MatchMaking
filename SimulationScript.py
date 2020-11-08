@@ -17,8 +17,8 @@ import requests
 #For data synchoronize
 clients_lock = threading.Lock()
 
-#serverIP = "127.0.0.1"
-serverIP = "3.138.33.54"
+serverIP = "127.0.0.1"
+#serverIP = "3.138.33.54"
 serverPort = 12345
 
 #list of user id in DataBase, {user_id : isInWaitingLobby}
