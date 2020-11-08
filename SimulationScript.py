@@ -37,7 +37,11 @@ def UpdateUserInfoToAWSLamda(user) :
    print(respBody["user_id"] + " updated")
 
 #users is array of dictionary{"user_id", "skill_level", "name"}
-def GameSimulation(users) :
+def GameSimulation(convertedData) :
+   users = convertedData["users"]
+   gameID = convertedData["gameID"]
+   gameStartedTime = convertedData["gameStartedTime"]
+
    #randomly select winner among 3users
    winnerIdx = random.randint(0, 2)
    loseUser1Idx = -1
@@ -56,6 +60,11 @@ def GameSimulation(users) :
 
    #from ELO rating system
    KFactor = 30
+
+   #log user's skill level before game
+   skillLevelline = "SkillLevel : {}({}), {}({}), {}({})\n".format(users[0]["user_id"], int(users[0]["skill_level"]), 
+                                                                   users[1]["user_id"], int(users[1]["skill_level"]),
+                                                                   users[2]["user_id"], int(users[2]["skill_level"]))
 
    
    #calculate sum of all matched users skill level
@@ -83,6 +92,40 @@ def GameSimulation(users) :
 
    users[loseUser2Idx]["skill_level"] = str(int(users[loseUser2Idx]["skill_level"]) + losePoint2)
    UpdateUserInfoToAWSLamda(users[loseUser2Idx])
+
+   print("Wirte game result to log file")
+
+   #open log text file
+   f = open("GameLog.txt","a+")
+
+   #write game id
+   f.write("GameID : %d\n" % gameID)
+
+   #write game started time
+   f.write("GameStartedTime : %s\n" % gameStartedTime)
+   
+   #write each user's Id and connected time
+   userIDline = "UserID(ConnectedTime) : {}({}), {}({}), {}({})\n".format(users[0]["user_id"], users[0]["connectedTime"], 
+                                                                          users[1]["user_id"], users[1]["connectedTime"],
+                                                                          users[2]["user_id"], users[2]["connectedTime"])
+   f.write(userIDline)
+
+   #write user's skill level
+   f.write(skillLevelline)
+
+   #write game result
+   gameResultLine = "GameResult : Winner: {}, Loser: {}, {}\n".format(users[winnerIdx]["user_id"], 
+                                                                      users[loseUser1Idx]["user_id"],
+                                                                      users[loseUser2Idx]["user_id"])
+   f.write(gameResultLine)
+
+   skillLevelAfterGameLine = "SkillLevelAfterGame : {}({}), {}({}), {}({})\n".format(users[0]["user_id"], int(users[0]["skill_level"]), 
+                                                                                     users[1]["user_id"], int(users[1]["skill_level"]),
+                                                                                     users[2]["user_id"], int(users[2]["skill_level"]))
+   f.write(skillLevelAfterGameLine)
+
+   f.write("\n")
+   f.close()
 
 def UserRequestJoiningGame(sock) :
    # #######################First send connecting msg, server will add this client as new client######################
@@ -133,6 +176,11 @@ def main():
    #how many games are matched?
    matchedGameNum = 0
 
+   #create empty log file
+   print("Create GameLog file")
+   f = open("GameLog.txt","w+")
+   f.close()
+
    #start requesting
    while True:
       #wait for reply from server
@@ -158,7 +206,7 @@ def main():
          print("GameID: " + str(convertedData["gameID"]))
          print("Users: " + convertedData["users"][0]["user_id"] + " " + convertedData["users"][1]["user_id"] + " " + convertedData["users"][2]["user_id"])
          #simulate game using matched users
-         GameSimulation(convertedData["users"])
+         GameSimulation(convertedData)
 
          for i in range(len(convertedData["users"])) :
             #lock data

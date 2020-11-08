@@ -100,7 +100,11 @@ def connectionLoop(sock):
             listOfUser[respBody["user_id"]]["user_id"] = respBody["user_id"]
             listOfUser[respBody["user_id"]]["name"] = respBody["name"]
             listOfUser[respBody["user_id"]]["skill_level"] = respBody["skill_level"]
-            
+
+            now = datetime.now()
+            current_time = now.strftime("%H:%M:%S")
+            listOfUser[respBody["user_id"]]["connectedTime"] = current_time
+
             #add new user to waiting lobby
             AddToWaitingLobby(respBody["user_id"])
             print(respBody["user_id"] + " is added to waiting lobby")
@@ -161,9 +165,13 @@ def WaitingLobby(sock) :
                     waitingList[i]["WaitingTime"] = 0
 
                 #send match found msg
+                now = datetime.now()
+                current_time = now.strftime("%H:%M:%S")
+
                 matchFoundMsg = {"cmd" : "MatchFound", 
                                  "users" : matchedUsers,
-                                 "gameID" : gameID
+                                 "gameID" : gameID,
+                                 "gameStartedTime" : current_time
                                 }
 
                 jsonMatchFoundMsg = json.dumps(matchFoundMsg)
