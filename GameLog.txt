@@ -1,70 +1,35 @@
 GameID : 0
-GameStartedTime : 15:55:12
-UserID(ConnectedTime) : 001(15:55:09), 002(15:55:10), 003(15:55:11)
-SkillLevel : 001(130), 002(128), 003(157)
-GameResult : Winner: 001, Loser: 002, 003
-SkillLevelAfterGame : 001(151), 002(119), 003(146)
+GameStartedTime : 09:52:05
+UserID(ConnectedTime) : 001(09:52:04), 002(09:52:05), 003(09:52:05)
+SkillLevel : 001(139), 002(116), 003(180)
+GameResult : Winner: 003, Loser: 001, 002
+SkillLevelAfterGame : 001(129), 002(108), 003(198)
 
 GameID : 1
-GameStartedTime : 15:55:19
-UserID(ConnectedTime) : 004(15:55:12), 005(15:55:13), 010(15:55:18)
-SkillLevel : 004(267), 005(357), 010(161)
+GameStartedTime : 09:52:10
+UserID(ConnectedTime) : 010(09:52:07), 004(09:52:05), 005(09:52:05)
+SkillLevel : 010(160), 004(240), 005(355)
 GameResult : Winner: 010, Loser: 004, 005
-SkillLevelAfterGame : 004(257), 005(343), 010(185)
+SkillLevelAfterGame : 010(184), 004(230), 005(341)
 
 GameID : 2
-GameStartedTime : 15:55:22
-UserID(ConnectedTime) : 001(15:55:19), 002(15:55:20), 003(15:55:21)
-SkillLevel : 001(151), 002(119), 003(146)
+GameStartedTime : 09:52:12
+UserID(ConnectedTime) : 001(09:52:11), 002(09:52:11), 003(09:52:12)
+SkillLevel : 001(129), 002(108), 003(198)
 GameResult : Winner: 003, Loser: 001, 002
-SkillLevelAfterGame : 001(140), 002(110), 003(165)
+SkillLevelAfterGame : 001(120), 002(101), 003(214)
 
 GameID : 3
-GameStartedTime : 15:55:24
-UserID(ConnectedTime) : 006(15:55:14), 009(15:55:17), 004(15:55:23)
-SkillLevel : 006(419), 009(562), 004(257)
-GameResult : Winner: 009, Loser: 006, 004
-SkillLevelAfterGame : 006(409), 009(578), 004(251)
+GameStartedTime : 09:52:14
+UserID(ConnectedTime) : 006(09:52:06), 009(09:52:06), 004(09:52:14)
+SkillLevel : 006(431), 009(593), 004(230)
+GameResult : Winner: 006, Loser: 009, 004
+SkillLevelAfterGame : 006(451), 009(579), 004(224)
 
 GameID : 4
-GameStartedTime : 15:55:28
-UserID(ConnectedTime) : 010(15:55:25), 001(15:55:26), 002(15:55:27)
-SkillLevel : 010(185), 001(140), 002(110)
-GameResult : Winner: 001, Loser: 010, 002
-SkillLevelAfterGame : 010(172), 001(160), 002(102)
-
-GameID : 5
-GameStartedTime : 15:55:30
-UserID(ConnectedTime) : 003(15:55:28), 005(15:55:24), 007(15:55:15)
-SkillLevel : 003(165), 005(343), 007(697)
-GameResult : Winner: 005, Loser: 003, 007
-SkillLevelAfterGame : 003(161), 005(364), 007(680)
-
-GameID : 6
-GameStartedTime : 15:55:32
-UserID(ConnectedTime) : 004(15:55:29), 008(15:55:16), 006(15:55:30)
-SkillLevel : 004(251), 008(930), 006(409)
-GameResult : Winner: 006, Loser: 004, 008
-SkillLevelAfterGame : 004(246), 008(912), 006(431)
-
-GameID : 7
-GameStartedTime : 15:55:35
-UserID(ConnectedTime) : 001(15:55:32), 002(15:55:33), 010(15:55:34)
-SkillLevel : 001(160), 002(102), 010(172)
-GameResult : Winner: 002, Loser: 001, 010
-SkillLevelAfterGame : 001(149), 002(125), 010(160)
-
-GameID : 8
-GameStartedTime : 15:55:39
-UserID(ConnectedTime) : 009(15:55:31), 005(15:55:36), 004(15:55:38)
-SkillLevel : 009(578), 005(364), 004(246)
-GameResult : Winner: 009, Loser: 005, 004
-SkillLevelAfterGame : 009(593), 005(355), 004(240)
-
-GameID : 9
-GameStartedTime : 15:55:43
-UserID(ConnectedTime) : 003(15:55:35), 001(15:55:41), 002(15:55:42)
-SkillLevel : 003(161), 001(149), 002(125)
-GameResult : Winner: 003, Loser: 001, 002
-SkillLevelAfterGame : 003(180), 001(139), 002(116)
+GameStartedTime : 09:52:17
+UserID(ConnectedTime) : 010(09:52:15), 005(09:52:14), 001(09:52:17)
+SkillLevel : 010(184), 005(341), 001(120)
+GameResult : Winner: 001, Loser: 010, 005
+SkillLevelAfterGame : 010(175), 005(325), 001(144)
 
