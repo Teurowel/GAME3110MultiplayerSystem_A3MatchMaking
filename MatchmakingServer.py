@@ -11,7 +11,8 @@ from datetime import datetime
 import json
 
 #for requesting user info from AWSLamda
-import requests
+from botocore.vendored import requests
+#import requests
 
 #For data synchoronize
 clients_lock = threading.Lock()
